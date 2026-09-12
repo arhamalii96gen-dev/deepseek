@@ -1,0 +1,911 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Birthday Protocol — Neeshu Edition</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; font-family: -apple-system, 'Segoe UI', sans-serif; }
+  body {
+    min-height: 100vh;
+    background: #050008;
+    background-image: 
+      radial-gradient(circle at 15% 15%, rgba(140, 60, 220, 0.18), transparent 55%),
+      radial-gradient(circle at 85% 85%, rgba(200, 80, 255, 0.14), transparent 55%);
+    overflow-x: hidden;
+    color: #ede4f5;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+  }
+  .particle { position: fixed; pointer-events: none; z-index: 1; opacity: 0.55; animation: floatUp linear infinite; }
+  @keyframes floatUp {
+    0% { transform: translateY(100vh); opacity: 0; }
+    10% { opacity: 0.55; }
+    90% { opacity: 0.55; }
+    100% { transform: translateY(-100px); opacity: 0; }
+  }
+  .screen { display: none; width: 100%; max-width: 430px; z-index: 10; }
+  .screen.active { display: block !important; animation: screenIn 0.9s cubic-bezier(0.16, 1, 0.3, 1); }
+  @keyframes screenIn {
+    0% { opacity: 0; transform: translateY(24px) scale(0.98); }
+    100% { opacity: 1; transform: translateY(0) scale(1); }
+  }
+  .protocol-card {
+    background: linear-gradient(160deg, rgba(38, 18, 62, 0.92), rgba(12, 4, 22, 0.97));
+    backdrop-filter: blur(22px);
+    -webkit-backdrop-filter: blur(22px);
+    border-radius: 26px;
+    padding: 22px;
+    border: 1px solid rgba(180, 130, 255, 0.18);
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.75), 0 0 80px rgba(140, 60, 220, 0.12);
+    position: relative;
+    overflow: hidden;
+  }
+  .protocol-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(200, 130, 255, 0.9), transparent);
+    animation: shimmer 3.5s linear infinite;
+  }
+  @keyframes shimmer {
+    0% { transform: translateX(-100%); }
+    100% { transform: translateX(100%); }
+  }
+  .top-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 14px;
+    font-size: 0.68rem;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: rgba(237, 228, 245, 0.55);
+  }
+  .top-bar .left { display: flex; align-items: center; gap: 7px; color: #b88aff; font-weight: 700; }
+  .top-bar .left::before {
+    content: '';
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: #b88aff;
+    box-shadow: 0 0 8px #b88aff;
+    animation: pulseDot 1.8s ease-in-out infinite;
+  }
+  @keyframes pulseDot { 0%,100% { opacity: 1; } 50% { opacity: 0.4; } }
+  .progress-bar { display: flex; gap: 4px; margin-bottom: 22px; }
+  .progress-bar span {
+    flex: 1; height: 3px; border-radius: 3px;
+    background: rgba(237, 228, 245, 0.1);
+    transition: all 0.6s ease;
+  }
+  .progress-bar span.done, .progress-bar span.current {
+    background: linear-gradient(90deg, #b88aff, #e8c8ff);
+    box-shadow: 0 0 8px rgba(184, 138, 255, 0.7);
+  }
+  .progress-bar span.current { animation: pulseBar 2s ease-in-out infinite; }
+  @keyframes pulseBar { 0%,100% { opacity: 1; } 50% { opacity: 0.55; } }
+  .badge-wrap { text-align: center; margin-bottom: 22px; }
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    padding: 7px 16px;
+    border: 1px solid rgba(184, 138, 255, 0.3);
+    border-radius: 50px;
+    font-size: 0.66rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: rgba(237, 228, 245, 0.9);
+    background: rgba(184, 138, 255, 0.06);
+    animation: badgeFloat 3.5s ease-in-out infinite;
+  }
+  @keyframes badgeFloat { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-3px); } }
+  .badge .icon { color: #e8c8ff; animation: spin 5s linear infinite; display: inline-block; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .emoji-hero {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 22px;
+    margin-bottom: 24px;
+    font-size: 3.6rem;
+    filter: drop-shadow(0 0 24px rgba(184, 138, 255, 0.55));
+  }
+  .emoji-hero .e1 { animation: emojiFloat1 3.5s ease-in-out infinite; display: inline-block; }
+  .emoji-hero .e2 { animation: emojiFloat2 3.5s ease-in-out infinite; display: inline-block; }
+  @keyframes emojiFloat1 {
+    0%,100% { transform: translateY(0) rotate(-5deg); }
+    50% { transform: translateY(-10px) rotate(5deg); }
+  }
+  @keyframes emojiFloat2 {
+    0%,100% { transform: translateY(0) rotate(5deg); }
+    50% { transform: translateY(-10px) rotate(-5deg); }
+  }
+  .hero-title {
+    font-size: 2.1rem;
+    font-weight: 800;
+    line-height: 1.15;
+    text-align: center;
+    margin-bottom: 16px;
+    letter-spacing: -0.02em;
+    color: #ede4f5;
+  }
+  .hero-title .grad {
+    background: linear-gradient(90deg, #b88aff, #e8c8ff, #b88aff);
+    background-size: 200% 100%;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    animation: gradientMove 4s linear infinite;
+  }
+  @keyframes gradientMove {
+    0% { background-position: 0% 50%; }
+    100% { background-position: 200% 50%; }
+  }
+  .subtitle {
+    text-align: center;
+    font-size: 0.92rem;
+    line-height: 1.65;
+    color: rgba(237, 228, 245, 0.75);
+    margin-bottom: 20px;
+  }
+  .subtitle b { color: #e8c8ff; font-weight: 700; }
+  .inner-card {
+    background: rgba(184, 138, 255, 0.05);
+    border: 1px solid rgba(184, 138, 255, 0.16);
+    border-radius: 16px;
+    padding: 18px;
+    margin-bottom: 22px;
+    text-align: center;
+    font-size: 0.95rem;
+    line-height: 1.65;
+    color: rgba(237, 228, 245, 0.92);
+  }
+  .inner-card b { color: #e8c8ff; font-weight: 700; }
+  .cta-btn {
+    width: 100%;
+    padding: 17px 24px;
+    font-size: 0.92rem;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    border: none;
+    border-radius: 16px;
+    background: linear-gradient(90deg, #b88aff, #8c3cdc, #b88aff);
+    background-size: 200% 100%;
+    color: #0a0012;
+    cursor: pointer;
+    box-shadow: 0 10px 30px rgba(140, 60, 220, 0.5);
+    transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), background-position 0.6s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    position: relative;
+    z-index: 100;
+    animation: ctaPulse 3s ease-in-out infinite;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+    font-family: inherit;
+  }
+  @keyframes ctaPulse {
+    0%,100% { box-shadow: 0 10px 30px rgba(140, 60, 220, 0.5); }
+    50% { box-shadow: 0 10px 40px rgba(184, 138, 255, 0.8); }
+  }
+  .cta-btn:hover { transform: translateY(-2px); background-position: 100% 50%; }
+  .cta-btn:active { transform: scale(0.97); }
+  .cta-btn .arrow { transition: transform 0.3s; }
+  .cta-btn:hover .arrow { transform: translateX(5px); }
+  .warning {
+    text-align: center;
+    font-size: 0.72rem;
+    color: rgba(237, 228, 245, 0.38);
+    margin-top: 14px;
+    font-style: italic;
+  }
+  .footer {
+    text-align: center;
+    font-size: 0.6rem;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: rgba(237, 228, 245, 0.3);
+    margin-top: 20px;
+  }
+  .roast-box { text-align: center; padding: 8px 0; }
+  .roast-emoji {
+    font-size: 3.2rem;
+    margin-bottom: 14px;
+    display: inline-block;
+    animation: emojiFloat1 2.5s ease-in-out infinite;
+    filter: drop-shadow(0 0 18px rgba(184, 138, 255, 0.65));
+  }
+  .roast-text {
+    font-size: 1rem;
+    line-height: 1.65;
+    color: rgba(237, 228, 245, 0.95);
+    animation: textIn 0.6s ease;
+  }
+  @keyframes textIn {
+    0% { opacity: 0; transform: translateY(14px); }
+    100% { opacity: 1; transform: translateY(0); }
+  }
+  .roast-box.shake .roast-emoji { animation: shakeEmoji 0.7s ease; }
+  @keyframes shakeEmoji {
+    0%,100% { transform: rotate(0); }
+    25% { transform: rotate(-15deg) scale(1.1); }
+    75% { transform: rotate(15deg) scale(1.1); }
+  }
+  .typing-box {
+    background: rgba(184, 138, 255, 0.04);
+    border: 1px solid rgba(184, 138, 255, 0.18);
+    border-radius: 16px;
+    padding: 20px;
+    margin-bottom: 20px;
+    min-height: 170px;
+  }
+  #typingText {
+    font-size: 0.94rem;
+    line-height: 1.75;
+    text-align: left;
+    white-space: pre-wrap;
+    color: rgba(237, 228, 245, 0.92);
+  }
+  #typingText::after {
+    content: '▊';
+    color: #b88aff;
+    animation: blink 0.8s infinite;
+    margin-left: 2px;
+  }
+  #typingText.done::after { display: none; }
+  @keyframes blink { 50% { opacity: 0; } }
+  .cake-wrap { text-align: center; padding: 18px 0; }
+  .cake {
+    font-size: 6.5rem;
+    cursor: pointer;
+    user-select: none;
+    display: inline-block;
+    animation: cakeFloat 3.5s ease-in-out infinite;
+    filter: drop-shadow(0 0 35px rgba(184, 138, 255, 0.75));
+    transition: transform 0.4s ease;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .cake:hover { transform: scale(1.12) rotate(5deg); }
+  @keyframes cakeFloat {
+    0%,100% { transform: translateY(0) rotate(-4deg); }
+    50% { transform: translateY(-14px) rotate(4deg); }
+  }
+  .emoji-burst {
+    position: fixed;
+    font-size: 1.8rem;
+    pointer-events: none;
+    z-index: 50;
+    animation: burstOut 1.8s ease-out forwards;
+  }
+  @keyframes burstOut {
+    0% { transform: translate(0,0) scale(0.4); opacity: 1; }
+    100% { transform: translate(var(--tx), var(--ty)) scale(1.8); opacity: 0; }
+  }
+  .confetti {
+    position: fixed;
+    width: 8px; height: 14px;
+    top: -20px;
+    animation: fall linear forwards;
+    z-index: 5;
+    pointer-events: none;
+  }
+  @keyframes fall {
+    to { transform: translateY(110vh) rotate(720deg); opacity: 0; }
+  }
+  .btn-row { display: flex; flex-direction: column; gap: 10px; }
+  .btn-secondary {
+    padding: 12px 20px;
+    font-size: 0.82rem;
+    background: rgba(184, 138, 255, 0.07);
+    border: 1px solid rgba(184, 138, 255, 0.18);
+    color: rgba(237, 228, 245, 0.75);
+    border-radius: 14px;
+    cursor: pointer;
+    font-weight: 500;
+    font-family: inherit;
+    transition: all 0.3s;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .btn-secondary:hover { background: rgba(184, 138, 255, 0.15); color: #ede4f5; }
+  .gift-card {
+    background: linear-gradient(145deg, rgba(140, 60, 220, 0.14), rgba(80, 20, 140, 0.06));
+    border: 1px solid rgba(184, 138, 255, 0.28);
+    border-radius: 18px;
+    padding: 20px;
+    margin-bottom: 14px;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+  }
+  .gift-card::before {
+    content: '';
+    position: absolute;
+    top: -50%; left: -50%;
+    width: 200%; height: 200%;
+    background: conic-gradient(from 0deg, transparent, rgba(232, 200, 255, 0.1), transparent 30%);
+    animation: rotateGlow 5s linear infinite;
+    pointer-events: none;
+  }
+  @keyframes rotateGlow { to { transform: rotate(360deg); } }
+  .gift-card > * { position: relative; z-index: 1; }
+  .gift-label {
+    font-size: 0.65rem;
+    letter-spacing: 0.25em;
+    text-transform: uppercase;
+    color: #e8c8ff;
+    margin-bottom: 10px;
+    font-weight: 700;
+  }
+  .gift-emoji {
+    font-size: 2.6rem;
+    margin-bottom: 8px;
+    display: inline-block;
+    animation: emojiFloat2 3s ease-in-out infinite;
+  }
+  .gift-text {
+    font-size: 1rem;
+    line-height: 1.55;
+    color: #ede4f5;
+    font-weight: 500;
+  }
+  .gift-text b { color: #b88aff; }
+  .gift-sub {
+    font-size: 0.82rem;
+    color: rgba(237, 228, 245, 0.6);
+    margin-top: 8px;
+    font-style: italic;
+    line-height: 1.55;
+  }
+  .neeshu-card {
+    background: linear-gradient(145deg, rgba(232, 200, 255, 0.08), rgba(184, 138, 255, 0.05));
+    border: 1px solid rgba(232, 200, 255, 0.25);
+    border-radius: 18px;
+    padding: 20px;
+    text-align: center;
+  }
+  .neeshu-card .gift-label { color: #b88aff; }
+  .reaction-bar {
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+    margin-top: 14px;
+    flex-wrap: wrap;
+  }
+  .reaction-bar button {
+    font-size: 1.3rem;
+    padding: 9px 14px;
+    background: rgba(184, 138, 255, 0.07);
+    border: 1px solid rgba(184, 138, 255, 0.18);
+    border-radius: 12px;
+    color: #ede4f5;
+    cursor: pointer;
+    font-family: inherit;
+    transition: transform 0.3s;
+  }
+  .reaction-bar button:hover { transform: scale(1.15); }
+  @media (max-width: 400px) {
+    .hero-title { font-size: 1.75rem; }
+    .emoji-hero { font-size: 3rem; gap: 18px; }
+    .protocol-card { padding: 20px 16px; }
+    .cake { font-size: 5.5rem; }
+  }
+</style>
+</head>
+<body>
+
+  <!-- INTRO -->
+  <div class="screen active" id="screen1">
+    <div class="protocol-card">
+      <div class="top-bar">
+        <div class="left">Birthday Protocol</div>
+        <div>01 / 05</div>
+      </div>
+      <div class="progress-bar">
+        <span class="current"></span><span></span><span></span><span></span><span></span>
+      </div>
+      <div class="badge-wrap">
+        <div class="badge"><span class="icon">⚠</span> Classified Delivery</div>
+      </div>
+      <div class="emoji-hero">
+        <span class="e1">😏</span>
+        <span class="e2">🎁</span>
+      </div>
+      <div class="hero-title">
+        Oye <span class="grad">Neeshu</span>,<br>idhar aa zara.
+      </div>
+      <p class="subtitle">
+        Aaj tera birthday hai toh socha<br>
+        <b>kuch legendary kar deta hoon.</b>
+      </p>
+      <div class="inner-card">
+        Normal "Happy Birthday Neeshu 🎂"<br>
+        message se<br>
+        <b>teri aukaat zyada badi hai.</b> 😏
+      </div>
+      <button class="cta-btn" id="startBtn" type="button">
+        Access Birthday File <span class="arrow">→</span>
+      </button>
+      <div class="warning">Warning: emotional damage may occur.</div>
+      <div class="footer">Birthday Protocol · Neeshu Edition · Built with Chaos</div>
+    </div>
+  </div>
+
+  <!-- LOADING -->
+  <div class="screen" id="screen2">
+    <div class="protocol-card">
+      <div class="top-bar">
+        <div class="left">Loading</div>
+        <div>02 / 05</div>
+      </div>
+      <div class="progress-bar">
+        <span class="done"></span><span class="current"></span><span></span><span></span><span></span>
+      </div>
+      <div style="text-align:center;padding:50px 0">
+        <div style="font-size:3.2rem;margin-bottom:20px;display:inline-block;animation:spin 3s linear infinite">⚙️</div>
+        <p id="loadMsg" style="font-size:0.95rem;color:rgba(237,228,245,0.8)">Initializing...</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ROASTS -->
+  <div class="screen" id="screen3">
+    <div class="protocol-card">
+      <div class="top-bar">
+        <div class="left">Roast Sequence</div>
+        <div>03 / 05</div>
+      </div>
+      <div class="progress-bar">
+        <span class="done"></span><span class="done"></span><span class="current"></span><span></span><span></span>
+      </div>
+      <div class="badge-wrap">
+        <div class="badge"><span class="icon">🔥</span> Roast Level: Savage</div>
+      </div>
+      <div class="roast-box" id="roastBox">
+        <div class="roast-emoji" id="roastEmoji">😈</div>
+        <div class="roast-text" id="roastText"></div>
+      </div>
+      <div id="roastProgress" style="text-align:center;font-size:0.72rem;color:rgba(237,228,245,0.5);margin:14px 0 16px;letter-spacing:0.15em"></div>
+      <div class="btn-row">
+        <button class="cta-btn" id="roastBtn" type="button">
+          Next Roast <span class="arrow">→</span>
+        </button>
+        <button class="btn-secondary" id="skipBtn" type="button">
+          Skip karo, roast boring hai 🙄
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- WISH -->
+  <div class="screen" id="screen4">
+    <div class="protocol-card">
+      <div class="top-bar">
+        <div class="left">Real Talk</div>
+        <div>04 / 05</div>
+      </div>
+      <div class="progress-bar">
+        <span class="done"></span><span class="done"></span><span class="done"></span><span class="current"></span><span></span>
+      </div>
+      <div class="badge-wrap">
+        <div class="badge"><span class="icon">💖</span> Sacchi Baat</div>
+      </div>
+      <div class="typing-box">
+        <p id="typingText"></p>
+      </div>
+      <button class="cta-btn" id="wishBtn" type="button" style="display:none">
+        Aage Badho <span class="arrow">→</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- CAKE -->
+  <div class="screen" id="screen5">
+    <div class="protocol-card">
+      <div class="top-bar">
+        <div class="left">Cake Protocol</div>
+        <div>05 / 05</div>
+      </div>
+      <div class="progress-bar">
+        <span class="done"></span><span class="done"></span><span class="done"></span><span class="done"></span><span class="current"></span>
+      </div>
+      <div class="badge-wrap">
+        <div class="badge"><span class="icon">🎂</span> Cut The Cake</div>
+      </div>
+      <p style="text-align:center;color:rgba(237,228,245,0.7);font-size:0.9rem;margin-bottom:8px">Cake pe click karo Neeshu!</p>
+      <div class="cake-wrap">
+        <div class="cake" id="cake" role="button">🎂</div>
+      </div>
+      <p id="cakeMsg" style="text-align:center;font-size:1.05rem;color:#e8c8ff;min-height:28px"></p>
+    </div>
+  </div>
+
+  <!-- FINAL -->
+  <div class="screen" id="screen6">
+    <div class="protocol-card">
+      <div class="top-bar">
+        <div class="left">Birthday Complete</div>
+        <div>★ Final ★</div>
+      </div>
+      <div class="progress-bar">
+        <span class="done"></span><span class="done"></span><span class="done"></span><span class="done"></span><span class="current"></span>
+      </div>
+
+      <div class="emoji-hero" style="font-size:2.6rem;margin-bottom:14px">
+        <span class="e1">🎉</span>
+        <span class="e2">🥳</span>
+        <span class="e1">🎊</span>
+      </div>
+
+      <div class="hero-title" style="font-size:1.7rem">
+        <span class="grad">Happy Birthday</span><br>Neeshu 🎂
+      </div>
+
+      <p class="subtitle" style="margin-bottom:20px">
+        Bhagwan tumhe dher saari khushiyan de,<br>
+        sehat de, paisa de, aur...<br>
+        <b>thodi si akal bhi de 😜</b>
+      </p>
+
+      <div class="gift-card">
+        <div class="gift-label">◆ Gift Delivered By ◆</div>
+        <div class="gift-emoji">🎁</div>
+        <div class="gift-text"><b>Ayush</b> ne kya gift diya?</div>
+        <div class="gift-sub">
+          Bhai ne kuch nahi diya...<br>
+          bas ye website bana di 😂<br>
+          <span style="color:#b88aff">paisa bacha liya, smart move 👏</span>
+        </div>
+      </div>
+
+      <div class="neeshu-card">
+        <div class="gift-label">◆ Special Mention ◆</div>
+        <div class="gift-emoji" style="animation-delay:0.5s">👑</div>
+        <div class="gift-text"><b>Neeshu</b> — ghar ki queen 👑</div>
+        <div class="gift-sub">
+          Drama queen, gussa queen, sab queen...<br>
+          par humari favourite queen bhi yahi hai 💕
+        </div>
+      </div>
+
+      <p style="text-align:center;margin-top:20px;font-size:0.9rem;color:rgba(237,228,245,0.85);line-height:1.6">
+        Happy Birthday once again Neeshu! 🥳<br>
+        Jiyo hazaron saal,<br>
+        aur humein roast karte raho 😂💕
+      </p>
+
+      <div style="margin-top:18px">
+        <button class="cta-btn" id="confettiBtn" type="button">
+          Confetti Chalao <span class="arrow">🎊</span>
+        </button>
+      </div>
+
+      <div class="reaction-bar">
+        <button onclick="burstEmoji(event, '❤️')">❤️</button>
+        <button onclick="burstEmoji(event, '😂')">😂</button>
+        <button onclick="burstEmoji(event, '🎉')">🎉</button>
+        <button onclick="burstEmoji(event, '🥳')">🥳</button>
+        <button onclick="burstEmoji(event, '💖')">💖</button>
+      </div>
+
+      <div class="footer">Birthday Protocol · Neeshu Edition · Built with Chaos</div>
+    </div>
+  </div>
+
+<script>
+  // ==========================================
+  // DATA
+  // ==========================================
+  var roasts = [
+    { emoji: "📱", text: "Neeshu tumhara phone plan unlimited hai... par tumhari baatein usse bhi zyada unlimited hain. Jio bhi kehta hai — 'bas karo behen, server down ho jayega' 😂📞" },
+    { emoji: "💄", text: "Neeshu ka makeup kit itna bada hai ki usme ek poori Nykaa store khul jaye... par gussa phir bhi original hi rehta hai, bina filter ke 💅😤" },
+    { emoji: "🛒", text: "Online shopping karte waqt Neeshu ki speed dekh ke Amazon ka server bhi thak jata hai. Cart mein 50 items, order 2... baaki 'wishlist' mein sadak pe 🙄🛒" },
+    { emoji: "📸", text: "100 selfie lo, 5 filter lagao, phir bhi kehti ho — 'yaar aaj toh main kharab lag rahi hoon'. Neeshu, tum kharab lag rahi ho... kyunki tumne humein reply nahi diya 😂📸" },
+    { emoji: "🍳", text: "Neeshu ki cooking try karne ki himmat sirf tumhare bhai mein hai... baaki sab 'khana kha liya' bol ke Maggi bana lete hain 🫣🔥" },
+    { emoji: "⏰", text: "Neeshu hamesha kehti ho '5 minute mein aa rahi hoon'... tumhare 5 minute ka matlab humein pata hai — 2 ghante baad, full makeup ke saath, 'dekho main ready hoon' 😂⌛" },
+    { emoji: "👑", text: "Ghar mein sabse zyada drama, sabse zyada nakhre, sabse zyada 'mujhe kuch nahi chahiye'... aur phir bhi sabse zyada pyaari. Yeh sirf Neeshu hi kar sakti hai 👑💕" },
+    { emoji: "🎭", text: "Neeshu ki smile dekh ke lagta hai — 'yeh ladki kuch plan kar rahi hai'... aur sach mein tum plan kar rahi hoti ho. Neeshu tum actress ban jao, Bollywood ready hai 😏🎭" }
+  ];
+
+  var wishText = "Dear Neeshu 💖\n\nAaj tumhara din hai, toh thodi si roast ke baad, thodi si sacchi baat bhi sun lo...\n\nTum jaisi bhi ho — drama queen, gussa wali, selfie wali, 'mujhe kuch nahi chahiye' wali — tum humare liye bahut special ho.\n\nTumhari wajah se ghar mein hasi rehti hai, aur bina tumhare sab soona soona lagta hai.\n\nHappy Birthday Neeshu! 🎂\nKhush raho, muskurate raho,\naur humein roast karte raho 💕";
+
+  var loadMsgs = [
+    "Neeshu ki file access ki ja rahi hai...",
+    "Roast content download ho raha hai...",
+    "Neeshu ka attitude scan kar rahe hain...",
+    "Warning: attitude overload detected ⚠️",
+    "Bas thoda aur... ready hone wali hai!"
+  ];
+
+  var roastIdx = 0;
+  var cakeCut = false;
+  var typingStarted = false;
+
+  // ==========================================
+  // SHOW SCREEN — FORCE DISPLAY
+  // ==========================================
+  function showScreen(id) {
+    var screens = document.querySelectorAll('.screen');
+    for (var i = 0; i < screens.length; i++) {
+      screens[i].classList.remove('active');
+      screens[i].style.display = 'none';
+    }
+    var target = document.getElementById(id);
+    if (target) {
+      target.classList.add('active');
+      target.style.display = 'block';
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  }
+
+  function goTo(n) {
+    showScreen('screen' + n);
+    if (n === 2) startLoading();
+    if (n === 3) nextRoast();
+    if (n === 4) startTyping();
+    if (n === 6) celebrate();
+  }
+
+  // ==========================================
+  // LOADING
+  // ==========================================
+  function startLoading() {
+    var i = 0;
+    var el = document.getElementById('loadMsg');
+    if (!el) return;
+    var int = setInterval(function() {
+      i++;
+      if (i < loadMsgs.length) {
+        el.textContent = loadMsgs[i];
+        el.style.animation = 'none';
+        void el.offsetWidth;
+        el.style.animation = 'textIn 0.6s ease';
+      } else {
+        clearInterval(int);
+        goTo(3);
+      }
+    }, 1300);
+  }
+
+  // ==========================================
+  // ROASTS
+  // ==========================================
+  function nextRoast() {
+    var box = document.getElementById('roastBox');
+    var emojiEl = document.getElementById('roastEmoji');
+    var textEl = document.getElementById('roastText');
+    var btn = document.getElementById('roastBtn');
+    var prog = document.getElementById('roastProgress');
+
+    if (!box || !emojiEl || !textEl) return;
+
+    if (roastIdx >= roasts.length) {
+      goTo(4);
+      return;
+    }
+
+    var r = roasts[roastIdx];
+    emojiEl.textContent = r.emoji;
+    textEl.textContent = r.text;
+    
+    box.classList.remove('shake');
+    void box.offsetWidth;
+    box.classList.add('shake');
+    
+    burstRandomEmojis(r.emoji, 5);
+    
+    roastIdx++;
+    if (prog) prog.textContent = 'Roast ' + roastIdx + ' / ' + roasts.length;
+
+    if (roastIdx === roasts.length && btn) {
+      btn.innerHTML = 'Bas itna hi? Aage chalo <span class="arrow">💖</span>';
+    }
+  }
+
+  // ==========================================
+  // TYPING WISH
+  // ==========================================
+  function startTyping() {
+    if (typingStarted) return;
+    typingStarted = true;
+    
+    var el = document.getElementById('typingText');
+    var btn = document.getElementById('wishBtn');
+    if (!el || !btn) return;
+    
+    el.textContent = '';
+    el.classList.remove('done');
+    var i = 0;
+    var int = setInterval(function() {
+      if (i < wishText.length) {
+        el.textContent += wishText.charAt(i);
+        i++;
+      } else {
+        clearInterval(int);
+        el.classList.add('done');
+        btn.style.display = 'flex';
+      }
+    }, 40);
+  }
+
+  // ==========================================
+  // CAKE
+  // ==========================================
+  function cutCake() {
+    if (cakeCut) return;
+    cakeCut = true;
+    var cake = document.getElementById('cake');
+    var msg = document.getElementById('cakeMsg');
+    if (cake) cake.textContent = '🍰';
+    if (msg) msg.textContent = 'Cake cut ho gaya! 🎉';
+    burstRandomEmojis('🎉', 20);
+    celebrate();
+    setTimeout(function() { goTo(6); }, 2500);
+  }
+
+  // ==========================================
+  // CONFETTI
+  // ==========================================
+  function celebrate() {
+    var colors = ['#b88aff', '#e8c8ff', '#8c3cdc', '#ede4f5', '#ffffff', '#c89aff'];
+    for (var i = 0; i < 80; i++) {
+      var c = document.createElement('div');
+      c.className = 'confetti';
+      c.style.left = Math.random() * 100 + 'vw';
+      c.style.background = colors[Math.floor(Math.random() * colors.length)];
+      c.style.animationDuration = (Math.random() * 2 + 2.5) + 's';
+      c.style.animationDelay = Math.random() * 1.5 + 's';
+      c.style.borderRadius = Math.random() > 0.6 ? '50%' : '2px';
+      document.body.appendChild(c);
+      (function(el) {
+        setTimeout(function() { 
+          if (el.parentNode) el.parentNode.removeChild(el); 
+        }, 6000);
+      })(c);
+    }
+  }
+
+  // ==========================================
+  // EMOJI BURST
+  // ==========================================
+  function burstRandomEmojis(emoji, count) {
+    var emojis = [emoji, '✨', '💫', '⭐', '💥', '💖'];
+    for (var i = 0; i < count; i++) {
+      var e = document.createElement('div');
+      e.className = 'emoji-burst';
+      e.textContent = emojis[Math.floor(Math.random() * emojis.length)];
+      e.style.left = (window.innerWidth / 2) + 'px';
+      e.style.top = (window.innerHeight / 2) + 'px';
+      e.style.setProperty('--tx', (Math.random() * 400 - 200) + 'px');
+      e.style.setProperty('--ty', (Math.random() * 400 - 200) + 'px');
+      document.body.appendChild(e);
+      (function(el) {
+        setTimeout(function() { 
+          if (el.parentNode) el.parentNode.removeChild(el); 
+        }, 1900);
+      })(e);
+    }
+  }
+
+  function burstEmoji(event, emoji) {
+    var rect = event.target.getBoundingClientRect();
+    for (var i = 0; i < 12; i++) {
+      var e = document.createElement('div');
+      e.className = 'emoji-burst';
+      e.textContent = emoji;
+      e.style.left = (rect.left + rect.width / 2) + 'px';
+      e.style.top = (rect.top) + 'px';
+      e.style.setProperty('--tx', (Math.random() * 300 - 150) + 'px');
+      e.style.setProperty('--ty', (-Math.random() * 400 - 100) + 'px');
+      document.body.appendChild(e);
+      (function(el) {
+        setTimeout(function() { 
+          if (el.parentNode) el.parentNode.removeChild(el); 
+        }, 1900);
+      })(e);
+    }
+  }
+
+  // ==========================================
+  // PARTICLES
+  // ==========================================
+  var particleEmojis = ['✨', '⭐', '💫', '🌟', '💖', '🎈'];
+  
+  function spawnParticle() {
+    var p = document.createElement('div');
+    p.className = 'particle';
+    p.textContent = particleEmojis[Math.floor(Math.random() * particleEmojis.length)];
+    p.style.left = Math.random() * 100 + 'vw';
+    p.style.fontSize = (Math.random() * 14 + 10) + 'px';
+    p.style.animationDuration = (Math.random() * 12 + 10) + 's';
+    p.style.animationDelay = Math.random() * 5 + 's';
+    document.body.appendChild(p);
+    (function(el) {
+      setTimeout(function() { 
+        if (el.parentNode) el.parentNode.removeChild(el); 
+      }, 22000);
+    })(p);
+  }
+  
+  setInterval(spawnParticle, 900);
+  for (var i = 0; i < 8; i++) spawnParticle();
+
+  // ==========================================
+  // EVENT LISTENERS — ATTACH AFTER LOAD
+  // ==========================================
+  function attachEvents() {
+    var startBtn = document.getElementById('startBtn');
+    var roastBtn = document.getElementById('roastBtn');
+    var skipBtn = document.getElementById('skipBtn');
+    var wishBtn = document.getElementById('wishBtn');
+    var cake = document.getElementById('cake');
+    var confettiBtn = document.getElementById('confettiBtn');
+
+    if (startBtn) {
+      startBtn.onclick = function(e) {
+        e.preventDefault();
+        goTo(2);
+      };
+    }
+    if (roastBtn) {
+      roastBtn.onclick = function(e) {
+        e.preventDefault();
+        nextRoast();
+      };
+    }
+    if (skipBtn) {
+      skipBtn.onclick = function(e) {
+        e.preventDefault();
+        goTo(4);
+      };
+    }
+    if (wishBtn) {
+      wishBtn.onclick = function(e) {
+        e.preventDefault();
+        goTo(5);
+      };
+    }
+    if (cake) {
+      cake.onclick = function(e) {
+        e.preventDefault();
+        cutCake();
+      };
+    }
+    if (confettiBtn) {
+      confettiBtn.onclick = function(e) {
+        e.preventDefault();
+        celebrate();
+      };
+    }
+  }
+
+  // ==========================================
+  // INITIAL SETUP
+  // ==========================================
+  document.addEventListener('DOMContentLoaded', function() {
+    var screens = document.querySelectorAll('.screen');
+    for (var i = 0; i < screens.length; i++) {
+      screens[i].style.display = 'none';
+    }
+    var first = document.getElementById('screen1');
+    if (first) {
+      first.classList.add('active');
+      first.style.display = 'block';
+    }
+    attachEvents();
+  });
+
+  // Backup: agar DOMContentLoaded pehle hi fire ho gaya
+  window.addEventListener('load', function() {
+    attachEvents();
+  });
+
+</script>
+</body>
+</html>
